@@ -4,6 +4,17 @@ Production MLOps pipeline on **Databricks** for **volleyball position analysis**
 **YOLOv8**. This repository takes the local **`volei-tactical`** proof of concept and
 productionizes it on Databricks using **Unity Catalog**, **MLflow**, and **Delta Lake**.
 
+> **Status:** code complete and validated locally (4 green local tests in `local_dev/`).
+> Running it on a Databricks workspace (UC tables, MLflow `@champion`, Jobs, Lakehouse
+> Monitor) is the next step — see [docs/DATABRICKS.md](docs/DATABRICKS.md) and the
+> step-by-step [docs/WALKTHROUGH.md](docs/WALKTHROUGH.md).
+
+![YOLOv8 detecting volleyball players](docs/media/yolo_player_detection.jpg)
+
+*Local run — YOLOv8 (`yolov8n`, COCO) on the Brazil × Italy VNL clip. It flags **everyone**
+(players, bench, crowd); that gap is the point: the pipeline is built so a custom-trained
+model drops in via a single `@champion` alias move, with zero code change downstream.*
+
 ---
 
 ## Overview
