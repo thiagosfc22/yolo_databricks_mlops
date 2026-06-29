@@ -1,0 +1,40 @@
+# Conda environment for LOCAL development & testing of yolo_databricks_mlops.
+#
+# Goal: run and validate the *portable* core locally (frame extraction, YOLOv8
+# detection, the MLflow pyfunc contract, and the Spark `pandas_udf` path) without
+# a Databricks workspace.
+#
+# Java is provided by `openjdk` INSIDE this env, so local PySpark works without
+# touching the system Java.
+#
+# Databricks-only pieces (Unity Catalog, Feature Engineering, Model Serving,
+# Lakehouse Monitoring) are NOT installed here — those run on the cluster and are
+# listed in requirements.txt. See README.md for the local-vs-Databricks split.
+#
+# Create:   conda env create -f environment.yml
+# Activate: conda activate yolo-databricks
+# Update:   conda env update -f environment.yml --prune
+
+name: yolo-databricks
+
+channels:
+  - conda-forge
+
+dependencies:
+  - python=3.11
+  - openjdk=17          # local PySpark runtime (no system Java needed)
+  - pip
+  - pip:
+      # --- CV / model core (fully local) ---
+      - ultralytics>=8.2.0
+      - opencv-python>=4.9.0     # GUI build for local viewing; cluster uses *-headless
+      - numpy>=1.26,<2.0
+      # --- MLflow (local file-based tracking works without Databricks) ---
+      - mlflow>=2.14.0
+      - pandas>=2.1
+      - pyarrow>=14.0
+      # --- local Spark + Delta, to exercise the pandas_udf / MERGE path ---
+      - pyspark==3.5.1
+      - delta-spark==3.2.0
+      # --- Databricks SDK: importable locally; full features need a workspace ---
+      - databricks-sdk>=0.29.0

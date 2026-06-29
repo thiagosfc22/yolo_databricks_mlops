@@ -1,0 +1,24 @@
+# requirements.txt — yolo_databricks_mlops (YOLOv8 MLOps pipeline on Databricks)
+#
+# Position in the pipeline: dependency manifest installed at the top of every
+# notebook/job (e.g. `%pip install -r requirements.txt`) so the cluster has the
+# packages needed for frame extraction, feature engineering, YOLOv8 training,
+# UC model registration, and batch inference.
+#
+# Target runtime: Databricks Runtime ML 15.x.
+#
+# NOTE: `mlflow` and `pyspark` already ship with Databricks Runtime ML 15.x.
+# They are listed here only with a minimum version to document the contract
+# (UC registry, @champion/@challenger aliases, Spark-first batch work) and to
+# guard against an older preinstalled build. Do NOT pin them to an exact
+# version — let the runtime-provided distribution win whenever it satisfies
+# the floor below.
+
+# --- Already provided by DBR ML 15.x (minimum version only) ---
+mlflow>=2.14.0
+
+# --- Project dependencies (not guaranteed in the base runtime) ---
+ultralytics>=8.2.0
+databricks-feature-engineering>=0.6.0
+databricks-sdk>=0.29.0
+opencv-python-headless>=4.9.0

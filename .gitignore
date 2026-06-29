@@ -1,0 +1,23 @@
+# Local test working artifacts (frames, manifests, mlflow db, local Delta tables)
+local_dev/_work/
+
+# Python
+**/__pycache__/
+*.pyc
+*.pyo
+
+# MLflow / Spark / Ivy local caches
+mlruns/
+mlflow.db
+spark-warehouse/
+metastore_db/
+derby.log
+
+# Model weights — train or download; do not commit binaries
+*.pt
+*.onnx
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
