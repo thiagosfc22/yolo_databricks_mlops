@@ -80,6 +80,16 @@ class YOLOPyfunc(mlflow.pyfunc.PythonModel):
                 weights are expected under the ``"weights"`` artifact key
                 (pointing at ``best.pt``).
         """
+        # Ultralytics writes a ``settings.json`` under its user-config dir on
+        # first import. On serving/UDF executors the default location can be
+        # unwritable for the run uid, raising a ``PermissionError``. Pin it to a
+        # fresh writable temp dir BEFORE importing ultralytics so the packaged
+        # model loads on any executor (model serving, batch ``pandas_udf``).
+        import tempfile
+
+        if "YOLO_CONFIG_DIR" not in os.environ:
+            os.environ["YOLO_CONFIG_DIR"] = tempfile.mkdtemp(prefix="ultralytics_")
+
         # Lazy imports: keep heavy CV deps out of the module import path.
         from ultralytics import YOLO  # noqa: WPS433 (intentional lazy import)
 

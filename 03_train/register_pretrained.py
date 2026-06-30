@@ -24,6 +24,22 @@ gap visible before investing in annotation.
 
 from __future__ import annotations
 
+import os
+import tempfile
+
+# -----------------------------------------------------------------------------
+# Ultralytics writes a ``settings.json`` under its user-config dir at IMPORT
+# time. On Databricks serverless the default location (``~/.config`` on Linux,
+# falling back to ``/tmp/Ultralytics``) can be missing or unwritable for the
+# run's uid, raising ``PermissionError: '/tmp/Ultralytics/settings.json'`` before
+# any of our code runs. Pin the config dir to a fresh, writable temp dir BEFORE
+# importing ultralytics. ``get_user_config_dir()`` honours ``YOLO_CONFIG_DIR``
+# with NO writability fallback, so the target must be writable — ``mkdtemp()``
+# guarantees a private, writable directory.
+# -----------------------------------------------------------------------------
+if "YOLO_CONFIG_DIR" not in os.environ:
+    os.environ["YOLO_CONFIG_DIR"] = tempfile.mkdtemp(prefix="ultralytics_")
+
 import mlflow
 import pandas as pd
 from mlflow.tracking import MlflowClient
@@ -33,7 +49,6 @@ from ultralytics import YOLO
 # Import the SAME pyfunc wrapper used by training/inference (training/serving
 # parity). The working dir is not guaranteed on sys.path inside a notebook.
 # -----------------------------------------------------------------------------
-import os
 import sys
 
 _THIS_DIR = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
@@ -114,9 +129,16 @@ def main() -> None:
     try:
         from mlflow.types.schema import Array, Object, Property
 
+        # NOTE: the class-id property is named "cls_id", NOT "cls". MLflow's
+        # ``Property.from_json_dict(cls, **kwargs)`` passes each property as a
+        # kwarg keyed by its name; a property literally named "cls" collides with
+        # the classmethod's own ``cls`` argument and raises
+        # ``TypeError: got multiple values for argument 'cls'`` when Unity Catalog
+        # re-loads the signature during registration. The runtime pyfunc output
+        # still uses the "cls" dict key — the signature is advisory metadata.
         box = Object(
             [Property(n, DataType.double) for n in ("x1", "y1", "x2", "y2", "conf")]
-            + [Property("cls", DataType.long)]
+            + [Property("cls_id", DataType.long)]
         )
         output_schema = Schema(
             [
