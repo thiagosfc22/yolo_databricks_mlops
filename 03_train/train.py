@@ -236,31 +236,38 @@ def main() -> None:
         # class. ``code_paths`` ships ``yolo_pyfunc.py`` so the exact same
         # implementation is used at inference time (training/serving parity).
         #
-        # Best-effort model signature so the registered model self-documents its
-        # IO contract (input: a ``path`` column; output: frame_id/boxes/confs/
-        # classes). Signature inference must never break a successful run.
+        # Unity Catalog REQUIRES a model signature with BOTH input and output specs.
+        # Build it EXPLICITLY (infer_signature can't infer the nested ``boxes``
+        # array<struct> on every MLflow version, silently yielding no signature and
+        # failing UC registration). Rich nested types when available; flat string
+        # fallback that UC still accepts.
+        from mlflow.models import ModelSignature
+        from mlflow.types import ColSpec, DataType, Schema
+
         input_example = pd.DataFrame(
             {"path": [f"/Volumes/{catalog}/{schema}/dataset/frames/example__000000.jpg"]}
         )
-        signature = None
+        input_schema = Schema([ColSpec(DataType.string, "path")])
         try:
-            from mlflow.models import infer_signature
+            from mlflow.types.schema import Array, Object, Property
 
-            output_example = pd.DataFrame(
+            box = Object(
+                [Property(n, DataType.double) for n in ("x1", "y1", "x2", "y2", "conf")]
+                + [Property("cls", DataType.long)]
+            )
+            output_schema = Schema(
                 [
-                    {
-                        "frame_id": "example__000000",
-                        "boxes": [
-                            {"x1": 0.0, "y1": 0.0, "x2": 1.0, "y2": 1.0, "conf": 0.9, "cls": 0}
-                        ],
-                        "confs": [0.9],
-                        "classes": [0],
-                    }
+                    ColSpec(DataType.string, "frame_id"),
+                    ColSpec(Array(box), "boxes"),
+                    ColSpec(Array(DataType.double), "confs"),
+                    ColSpec(Array(DataType.long), "classes"),
                 ]
             )
-            signature = infer_signature(input_example, output_example)
-        except Exception:  # noqa: BLE001 — signature is best-effort, never break training
-            signature = None
+        except Exception:  # noqa: BLE001 — flat schema fallback UC still accepts
+            output_schema = Schema(
+                [ColSpec(DataType.string, c) for c in ("frame_id", "boxes", "confs", "classes")]
+            )
+        signature = ModelSignature(inputs=input_schema, outputs=output_schema)
 
         mlflow.pyfunc.log_model(
             artifact_path=ARTIFACT_PATH,
